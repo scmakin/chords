@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Pro Chord Maker (High-Res)</title>
+    <script src="https://unpkg.com/tonal/browser/tonal.min.js"></script>
+    <style>
+        :root { 
+            --bg: #1a1a1a; --card: #2d2d2d; --text: #eeeeee; --subtext: #aaaaaa; 
+            --border: #444444; --accent: #8e44ad; --copy-btn: #2980b9; --input-bg: #3d3d3d;
+        }
+        body { background: var(--bg); color: var(--text); font-family: sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .card { background: var(--card); display: flex; flex-direction: row; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); gap: 40px; align-items: center; }
+        .controls { display: flex; flex-direction: column; width: 240px; }
+        input, select { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid var(--border); border-radius: 6px; background: var(--input-bg); color: var(--text); margin-bottom: 12px; outline: none; }
+        #n { font-size: 26px; font-weight: bold; border: none; border-bottom: 2px solid var(--accent); background: transparent; text-align: center; }
+        #tag { font-size: 10px; color: var(--subtext); cursor: pointer; text-transform: uppercase; margin-bottom: 20px; text-align: center; }
+        .label { font-size: 11px; font-weight: bold; color: var(--subtext); margin-bottom: 5px; text-transform: uppercase; }
+        #i { font-family: monospace; font-size: 20px; text-align: center; }
+        .btn-group { margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .btn-full { grid-column: span 2; }
+        button { padding: 10px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; color: white; }
+        .btn-png { background: #444; }
+        .btn-svg { background: var(--accent); }
+        .btn-copy { background: var(--copy-btn); }
+        .copy-svg-code { font-size: 10px; color: var(--subtext); text-decoration: underline; cursor: pointer; text-align: center; margin-top: 8px; display: block; }
+        /* Canvas is sized in CSS to look 260px wide, but internal pixels are higher */
+        canvas { background: white; border-radius: 8px; width: 260px; height: 300px; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <div class="controls">
+            <input type="text" id="n" value="Am">
+            <div id="tag" onclick="resetAuto()">Auto-detecting</div>
+            <div class="label">Matches</div>
+            <select id="alt" onchange="selectAlt(this.value)"></select>
+            <div class="label">Tuning</div>
+            <select id="tuningSelect" onchange="draw()">
+                <option value="E2,A2,D3,G3,B3,E4">Standard</option>
+                <option value="D2,A2,D3,G3,B3,E4">Drop D</option>
+            </select>
+            <div class="label">Fingerings</div>
+            <input type="text" id="i" value="x 0 2 2 1 0">
+            <div class="btn-group">
+                <button class="btn-copy btn-full" id="copyBtn" onclick="copyToClipboard()">Copy PNG (High-Res)</button>
+                <button class="btn-png" onclick="save()">Save PNG</button>
+                <button class="btn-svg" onclick="saveSVG()">Save SVG</button>
+            </div>
+            <span class="copy-svg-code" onclick="copySVGCode()">Copy SVG Code</span>
+        </div>
+        <div class="preview">
+            <canvas id="c"></canvas>
+        </div>
+    </div>
+
+    <script>
+        const cvs = document.getElementById('c'), ctx = cvs.getContext('2d');
+        const nI = document.getElementById('n'), iI = document.getElementById('i'), 
+              alt = document.getElementById('alt'), tag = document.getElementById('tag'),
+              tS = document.getElementById('tuningSelect');
+
+        // HIGH-RES SCALING
+        const ratio = 3; // 3x resolution
+        cvs.width = 260 * ratio;
+        cvs.height = 300 * ratio;
+        ctx.scale(ratio, ratio);
+
+        function draw() {
+            const frets = iI.value.match(/x|\d+/g) || [];
+            if (frets.length !== 6) return;
+            const tuning = tS.value.split(',');
+            
+            // Note detection logic
+            let notes = [], bass = "";
+            frets.forEach((f, idx) => {
+                if (f !== 'x') {
+                    let nt = Tonal.Note.transpose(tuning[idx], Tonal.Interval.fromSemitones(parseInt(f)));
+                    let pc = Tonal.Note.get(nt).pc; notes.push(pc); if (!bass) bass = pc;
+                }
+            });
+            let data = Tonal.Chord.detect(notes).map(m => {
+                let name = m.replace(/M$/, '').replace('M7', 'maj7');
+                let root = Tonal.Chord.get(m).root;
+                return (root && bass !== root) ? name + '/' + bass : name;
+            });
+
+            if (!nI.dataset.manual) {
+                nI.value = data[0] || "Custom";
+                alt.innerHTML = ""; data.forEach(m => {
+                    const opt = document.createElement('option'); opt.value = opt.innerText = m; alt.appendChild(opt);
+                });
+            }
+
+            const num = frets.map(f => f === 'x' ? -1 : parseInt(f));
+            const start = (Math.max(...num) > 5) ? Math.min(...num.filter(f => f > 0)) : 1;
+
+            // DRAWING
+            ctx.fillStyle = 'white'; ctx.fillRect(0, 0, 260, 300);
+            ctx.fillStyle = 'black'; ctx.font = 'bold 22px Arial'; ctx.textAlign = 'center';
+            ctx.fillText(nI.value, 130, 35);
+
+            let x0 = 60, y0 = 75, w = 140, h = 180, gX = w/5, gY = h/5;
+            ctx.strokeStyle = '#444'; ctx.lineWidth = 1;
+            for(let i=0; i<6; i++) { ctx.beginPath(); ctx.moveTo(x0+i*gX, y0); ctx.lineTo(x0+i*gX, y0+h); ctx.stroke(); }
+            for(let j=0; j<=5; j++) { ctx.beginPath(); ctx.moveTo(x0, y0+j*gY); ctx.lineTo(x0+w, y0+j*gY); ctx.stroke(); }
+
+            if(start === 1) { ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x0+w, y0); ctx.stroke(); ctx.lineWidth = 1; }
+            else { ctx.fillStyle = '#666'; ctx.font = 'bold 14px Arial'; ctx.textAlign = 'right'; ctx.fillText(start + 'fr', x0 - 10, y0 + 15); }
+
+            frets.forEach((f, k) => {
+                let x = x0 + k*gX;
+                if(f === 'x') { ctx.fillStyle = 'black'; ctx.font = 'bold 18px Arial'; ctx.fillText('×', x, y0 - 12); }
+                else if(f === '0') { ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y0 - 15, 6, 0, 7); ctx.stroke(); }
+                else {
+                    let rel = parseInt(f)-start+1;
+                    ctx.fillStyle = '#2c3e50'; ctx.beginPath(); ctx.arc(x, y0+(rel*gY)-(gY/2), 11, 0, 7); ctx.fill();
+                }
+            });
+        }
+
+        async function copyToClipboard() {
+            const btn = document.getElementById('copyBtn');
+            cvs.toBlob(async (blob) => {
+                const item = new ClipboardItem({ "image/png": blob });
+                await navigator.clipboard.write([item]);
+                btn.innerText = "Copied!"; setTimeout(() => btn.innerText = "Copy PNG (High-Res)", 1500);
+            }, 'image/png', 1.0);
+        }
+
+        function save() { const l = document.createElement('a'); l.download = nI.value + '.png'; l.href = cvs.toDataURL('image/png', 1.0); l.click(); }
+        function selectAlt(v) { nI.value = v; nI.dataset.manual = "true"; tag.innerText = "Manual Override"; draw(); }
+        function resetAuto() { delete nI.dataset.manual; tag.innerText = "Auto-detecting"; draw(); }
+        
+        nI.oninput = () => { nI.dataset.manual = "true"; draw(); };
+        iI.oninput = draw;
+        setInterval(() => { if (window.Tonal && !window.init) { draw(); window.init=true; } }, 100);
+    </script>
+</body>
+</html>
