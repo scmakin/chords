@@ -2,101 +2,137 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Pro Chord Maker (High-Res)</title>
-    <script src="https://unpkg.com/tonal/browser/tonal.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pro Chord Maker</title>
+    <script src="https://cdn.jsdelivr.net/npm/tonal@4.10.0/browser/tonal.min.js"></script>
     <style>
         :root { 
             --bg: #1a1a1a; --card: #2d2d2d; --text: #eeeeee; --subtext: #aaaaaa; 
             --border: #444444; --accent: #8e44ad; --copy-btn: #2980b9; --input-bg: #3d3d3d;
+            --manual-warn: #e67e22;
         }
-        body { background: var(--bg); color: var(--text); font-family: sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        [data-theme="light"] { 
+            --bg: #f4f4f4; --card: white; --text: #333; --subtext: #888; --border: #ddd; --input-bg: white;
+        }
+        
+        body { background: var(--bg); color: var(--text); font-family: sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; transition: 0.3s; }
         .card { background: var(--card); display: flex; flex-direction: row; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); gap: 40px; align-items: center; }
-        .controls { display: flex; flex-direction: column; width: 240px; }
-        input, select { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid var(--border); border-radius: 6px; background: var(--input-bg); color: var(--text); margin-bottom: 12px; outline: none; }
-        #n { font-size: 26px; font-weight: bold; border: none; border-bottom: 2px solid var(--accent); background: transparent; text-align: center; }
-        #tag { font-size: 10px; color: var(--subtext); cursor: pointer; text-transform: uppercase; margin-bottom: 20px; text-align: center; }
+        .controls { display: flex; flex-direction: column; width: 240px; text-align: left; }
+        
+        input, select { 
+            width: 100%; padding: 12px; box-sizing: border-box; border: 1px solid var(--border); 
+            border-radius: 6px; background: var(--input-bg); color: var(--text);
+            margin-bottom: 12px; outline: none; font-size: 16px;
+        }
+        
+        #i { font-family: monospace; font-size: 22px; text-align: center; border: 2px solid var(--accent); }
+        #n { font-size: 26px; font-weight: bold; border: none; border-bottom: 2px solid var(--accent); background: transparent; text-align: center; margin-top: 10px; }
+        
+        #tag { font-size: 10px; color: var(--subtext); cursor: pointer; text-transform: uppercase; margin-bottom: 20px; text-align: center; letter-spacing: 1px; font-weight: bold; }
         .label { font-size: 11px; font-weight: bold; color: var(--subtext); margin-bottom: 5px; text-transform: uppercase; }
-        #i { font-family: monospace; font-size: 20px; text-align: center; }
+
         .btn-group { margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
         .btn-full { grid-column: span 2; }
-        button { padding: 10px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; color: white; }
+        button { padding: 10px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; color: white; }
         .btn-png { background: #444; }
         .btn-svg { background: var(--accent); }
         .btn-copy { background: var(--copy-btn); }
-        .copy-svg-code { font-size: 10px; color: var(--subtext); text-decoration: underline; cursor: pointer; text-align: center; margin-top: 8px; display: block; }
-        /* Canvas is sized in CSS to look 260px wide, but internal pixels are higher */
-        canvas { background: white; border-radius: 8px; width: 260px; height: 300px; }
+        button:hover { opacity: 0.8; }
+        
+        .copy-svg-code { font-size: 10px; color: var(--subtext); text-decoration: underline; cursor: pointer; text-align: center; margin-top: 10px; display: block; }
+        .theme-toggle { position: fixed; top: 20px; right: 20px; background: var(--card); color: var(--text); border: 1px solid var(--border); padding: 8px 12px; border-radius: 20px; cursor: pointer; }
+        canvas { background: white; border-radius: 8px; width: 260px; height: 300px; display: block; }
     </style>
 </head>
-<body>
+<body data-theme="dark">
+
+    <button class="theme-toggle" onclick="toggleTheme()">🌓 Theme</button>
 
     <div class="card">
         <div class="controls">
-            <input type="text" id="n" value="Am">
+            <div class="label">Enter Fingering</div>
+            <input type="text" id="i" value="x 3 2 0 1 0" autofocus>
+
+            <input type="text" id="n" value="C">
             <div id="tag" onclick="resetAuto()">Auto-detecting</div>
+
             <div class="label">Matches</div>
             <select id="alt" onchange="selectAlt(this.value)"></select>
+
             <div class="label">Tuning</div>
             <select id="tuningSelect" onchange="draw()">
-                <option value="E2,A2,D3,G3,B3,E4">Standard</option>
+                <option value="E2,A2,D3,G3,B3,E4">Standard (EADGBE)</option>
                 <option value="D2,A2,D3,G3,B3,E4">Drop D</option>
+                <option value="D2,A2,D3,G3,A3,D4">DADGAD</option>
             </select>
-            <div class="label">Fingerings</div>
-            <input type="text" id="i" value="x 0 2 2 1 0">
+
             <div class="btn-group">
                 <button class="btn-copy btn-full" id="copyBtn" onclick="copyToClipboard()">Copy PNG (High-Res)</button>
                 <button class="btn-png" onclick="save()">Save PNG</button>
                 <button class="btn-svg" onclick="saveSVG()">Save SVG</button>
             </div>
-            <span class="copy-svg-code" onclick="copySVGCode()">Copy SVG Code</span>
+            <span class="copy-svg-code" id="svgCodeBtn" onclick="copySVGCode()">Copy SVG Code</span>
         </div>
+
         <div class="preview">
             <canvas id="c"></canvas>
         </div>
     </div>
 
     <script>
-        const cvs = document.getElementById('c'), ctx = cvs.getContext('2d');
         const nI = document.getElementById('n'), iI = document.getElementById('i'), 
-              alt = document.getElementById('alt'), tag = document.getElementById('tag'),
+              alt = document.getElementById('alt'), tag = document.getElementById('tag'), 
+              cvs = document.getElementById('c'), ctx = cvs.getContext('2d'),
               tS = document.getElementById('tuningSelect');
 
-        // HIGH-RES SCALING
-        const ratio = 3; // 3x resolution
-        cvs.width = 260 * ratio;
-        cvs.height = 300 * ratio;
+        const ratio = 3;
+        cvs.width = 260 * ratio; cvs.height = 300 * ratio;
         ctx.scale(ratio, ratio);
+
+        function toggleTheme() {
+            document.body.setAttribute('data-theme', document.body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+        }
+
+        function formatChordName(name) {
+            // Remove 'M' if it's at the end of a root (e.g., CM -> C)
+            // Replace 'M7' with 'maj7'
+            return name.replace(/M$/, '').replace('M7', 'maj7');
+        }
 
         function draw() {
             const frets = iI.value.match(/x|\d+/g) || [];
             if (frets.length !== 6) return;
-            const tuning = tS.value.split(',');
-            
-            // Note detection logic
-            let notes = [], bass = "";
-            frets.forEach((f, idx) => {
-                if (f !== 'x') {
-                    let nt = Tonal.Note.transpose(tuning[idx], Tonal.Interval.fromSemitones(parseInt(f)));
-                    let pc = Tonal.Note.get(nt).pc; notes.push(pc); if (!bass) bass = pc;
-                }
-            });
-            let data = Tonal.Chord.detect(notes).map(m => {
-                let name = m.replace(/M$/, '').replace('M7', 'maj7');
-                let root = Tonal.Chord.get(m).root;
-                return (root && bass !== root) ? name + '/' + bass : name;
-            });
 
-            if (!nI.dataset.manual) {
-                nI.value = data[0] || "Custom";
-                alt.innerHTML = ""; data.forEach(m => {
-                    const opt = document.createElement('option'); opt.value = opt.innerText = m; alt.appendChild(opt);
+            if (window.Tonal && window.Tonal.Chord) {
+                const tuning = tS.value.split(',');
+                let notes = [], bass = "";
+                frets.forEach((f, idx) => {
+                    if (f.toLowerCase() !== 'x') {
+                        let nt = Tonal.Note.transpose(tuning[idx], Tonal.Interval.fromSemitones(parseInt(f)));
+                        let pc = Tonal.Note.get(nt).pc;
+                        notes.push(pc);
+                        if (!bass) bass = pc;
+                    }
                 });
+
+                const detected = Tonal.Chord.detect(notes);
+                const cleanNames = detected.map(m => formatChordName(m));
+
+                if (!nI.dataset.manual) {
+                    nI.value = cleanNames.length > 0 ? cleanNames[0] : "Custom";
+                    alt.innerHTML = "";
+                    cleanNames.forEach(m => {
+                        let opt = document.createElement('option');
+                        opt.value = opt.innerText = m;
+                        alt.appendChild(opt);
+                    });
+                }
             }
 
-            const num = frets.map(f => f === 'x' ? -1 : parseInt(f));
-            const start = (Math.max(...num) > 5) ? Math.min(...num.filter(f => f > 0)) : 1;
+            const num = frets.map(f => f.toLowerCase() === 'x' ? -1 : parseInt(f));
+            const maxFret = Math.max(...num);
+            const start = (maxFret > 5) ? Math.min(...num.filter(f => f > 0)) : 1;
 
-            // DRAWING
             ctx.fillStyle = 'white'; ctx.fillRect(0, 0, 260, 300);
             ctx.fillStyle = 'black'; ctx.font = 'bold 22px Arial'; ctx.textAlign = 'center';
             ctx.fillText(nI.value, 130, 35);
@@ -111,31 +147,62 @@
 
             frets.forEach((f, k) => {
                 let x = x0 + k*gX;
-                if(f === 'x') { ctx.fillStyle = 'black'; ctx.font = 'bold 18px Arial'; ctx.fillText('×', x, y0 - 12); }
+                if(f.toLowerCase() === 'x') { ctx.fillStyle = 'black'; ctx.font = 'bold 18px Arial'; ctx.fillText('×', x, y0 - 12); }
                 else if(f === '0') { ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y0 - 15, 6, 0, 7); ctx.stroke(); }
                 else {
-                    let rel = parseInt(f)-start+1;
-                    ctx.fillStyle = '#2c3e50'; ctx.beginPath(); ctx.arc(x, y0+(rel*gY)-(gY/2), 11, 0, 7); ctx.fill();
+                    let rel = parseInt(f) - start + 1;
+                    ctx.fillStyle = '#2c3e50'; ctx.beginPath(); ctx.arc(x, y0 + (rel*gY) - (gY/2), 11, 0, 7); ctx.fill();
                 }
             });
         }
 
-        async function copyToClipboard() {
-            const btn = document.getElementById('copyBtn');
-            cvs.toBlob(async (blob) => {
-                const item = new ClipboardItem({ "image/png": blob });
-                await navigator.clipboard.write([item]);
-                btn.innerText = "Copied!"; setTimeout(() => btn.innerText = "Copy PNG (High-Res)", 1500);
-            }, 'image/png', 1.0);
-        }
-
-        function save() { const l = document.createElement('a'); l.download = nI.value + '.png'; l.href = cvs.toDataURL('image/png', 1.0); l.click(); }
         function selectAlt(v) { nI.value = v; nI.dataset.manual = "true"; tag.innerText = "Manual Override"; draw(); }
         function resetAuto() { delete nI.dataset.manual; tag.innerText = "Auto-detecting"; draw(); }
-        
-        nI.oninput = () => { nI.dataset.manual = "true"; draw(); };
-        iI.oninput = draw;
-        setInterval(() => { if (window.Tonal && !window.init) { draw(); window.init=true; } }, 100);
+        iI.oninput = () => { resetAuto(); draw(); };
+        nI.oninput = () => { nI.dataset.manual = "true"; tag.innerText = "Manual Override"; draw(); };
+
+        function save() { const a = document.createElement('a'); a.download = nI.value + '.png'; a.href = cvs.toDataURL(); a.click(); }
+        async function copyToClipboard() {
+            cvs.toBlob(async (b) => {
+                const i = new ClipboardItem({ "image/png": b });
+                await navigator.clipboard.write([i]);
+                document.getElementById('copyBtn').innerText = "Copied!";
+                setTimeout(() => document.getElementById('copyBtn').innerText = "Copy PNG (High-Res)", 1500);
+            });
+        }
+
+        function getSVGString() {
+            const name = nI.value; const frets = iI.value.match(/x|\d+/g) || [];
+            const num = frets.map(f => f.toLowerCase() === 'x' ? -1 : parseInt(f));
+            const start = (Math.max(...num) > 5) ? Math.min(...num.filter(f => f > 0)) : 1;
+            let x0 = 60, y0 = 75, w = 140, h = 180, gX = w/5, gY = h/5;
+            let svg = `<svg width="260" height="300" viewBox="0 0 260 300" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="white"/>`;
+            svg += `<text x="130" y="35" text-anchor="middle" font-family="Arial" font-weight="bold" font-size="22" fill="black">${name}</text>`;
+            for(let i=0; i<6; i++) svg += `<line x1="${x0+i*gX}" y1="${y0}" x2="${x0+i*gX}" y2="${y0+h}" stroke="#444" stroke-width="1"/>`;
+            for(let j=0; j<=5; j++) svg += `<line x1="${x0}" y1="${y0+j*gY}" x2="${x0+w}" y2="${y0+j*gY}" stroke="#444" stroke-width="1"/>`;
+            if(start === 1) svg += `<line x1="${x0}" y1="${y0}" x2="${x0+w}" y2="${y0}" stroke="black" stroke-width="6"/>`;
+            else svg += `<text x="${x0-10}" y="${y0+15}" text-anchor="end" font-family="Arial" font-weight="bold" font-size="14" fill="#666">${start}fr</text>`;
+            frets.forEach((f, k) => {
+                let x = x0 + k*gX;
+                if(f.toLowerCase() === 'x') svg += `<text x="${x}" y="${y0-10}" text-anchor="middle" font-family="Arial" font-weight="bold" font-size="18" fill="black">×</text>`;
+                else if(f === '0') svg += `<circle cx="${x}" cy="${y0-15}" r="6" stroke="black" stroke-width="2" fill="none"/>`;
+                else { let rel = parseInt(f)-start+1; svg += `<circle cx="${x}" cy="${y0+(rel*gY)-(gY/2)}" r="11" fill="#2c3e50"/>`; }
+            });
+            return svg + `</svg>`;
+        }
+
+        async function copySVGCode() {
+            await navigator.clipboard.writeText(getSVGString());
+            document.getElementById('svgCodeBtn').innerText = "SVG Code Copied!";
+            setTimeout(() => document.getElementById('svgCodeBtn').innerText = "Copy SVG Code", 1500);
+        }
+
+        function saveSVG() {
+            const b = new Blob([getSVGString()], {type: 'image/svg+xml'});
+            const l = document.createElement('a'); l.href = URL.createObjectURL(b); l.download = nI.value + '.svg'; l.click();
+        }
+
+        window.onload = () => { setTimeout(draw, 300); };
     </script>
 </body>
 </html>
