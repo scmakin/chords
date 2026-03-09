@@ -2,207 +2,201 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pro Chord Maker</title>
-    <script src="https://cdn.jsdelivr.net/npm/tonal@4.10.0/browser/tonal.min.js"></script>
+    <title>Elite Jazz Chord Engine CF3.4</title>
     <style>
-        :root { 
-            --bg: #1a1a1a; --card: #2d2d2d; --text: #eeeeee; --subtext: #aaaaaa; 
-            --border: #444444; --accent: #8e44ad; --copy-btn: #2980b9; --input-bg: #3d3d3d;
-            --manual-warn: #e67e22;
-        }
-        [data-theme="light"] { 
-            --bg: #f4f4f4; --card: white; --text: #333; --subtext: #888; --border: #ddd; --input-bg: white;
-        }
-        
-        body { background: var(--bg); color: var(--text); font-family: sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; transition: 0.3s; }
-        .card { background: var(--card); display: flex; flex-direction: row; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); gap: 40px; align-items: center; }
-        .controls { display: flex; flex-direction: column; width: 240px; text-align: left; }
-        
-        input, select { 
-            width: 100%; padding: 12px; box-sizing: border-box; border: 1px solid var(--border); 
-            border-radius: 6px; background: var(--input-bg); color: var(--text);
-            margin-bottom: 12px; outline: none; font-size: 16px;
-        }
-        
-        #i { font-family: monospace; font-size: 22px; text-align: center; border: 2px solid var(--accent); }
-        #n { font-size: 26px; font-weight: bold; border: none; border-bottom: 2px solid var(--accent); background: transparent; text-align: center; margin-top: 10px; }
-        
-        #tag { font-size: 10px; color: var(--subtext); cursor: pointer; text-transform: uppercase; margin-bottom: 20px; text-align: center; letter-spacing: 1px; font-weight: bold; }
-        .label { font-size: 11px; font-weight: bold; color: var(--subtext); margin-bottom: 5px; text-transform: uppercase; }
-
-        .btn-group { margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-        .btn-full { grid-column: span 2; }
-        button { padding: 10px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; color: white; }
-        .btn-png { background: #444; }
-        .btn-svg { background: var(--accent); }
-        .btn-copy { background: var(--copy-btn); }
-        button:hover { opacity: 0.8; }
-        
-        .copy-svg-code { font-size: 10px; color: var(--subtext); text-decoration: underline; cursor: pointer; text-align: center; margin-top: 10px; display: block; }
-        .theme-toggle { position: fixed; top: 20px; right: 20px; background: var(--card); color: var(--text); border: 1px solid var(--border); padding: 8px 12px; border-radius: 20px; cursor: pointer; }
-        canvas { background: white; border-radius: 8px; width: 260px; height: 300px; display: block; }
+        :root { --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --accent: #38bdf8; --border: #334155; }
+        body { background: var(--bg); color: var(--text); font-family: 'Inter', system-ui, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .card { background: var(--card); display: flex; padding: 40px; border-radius: 24px; gap: 40px; align-items: center; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); border: 1px solid var(--border); position: relative; }
+        .controls { width: 300px; display: flex; flex-direction: column; }
+        .label { font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 10px; }
+        input { width: 100%; padding: 16px; margin-bottom: 15px; border-radius: 12px; border: 2px solid var(--border); background: #0f172a; color: white; text-align: center; font-family: 'JetBrains Mono', monospace; outline: none; }
+        #i { font-size: 1.4rem; border-color: var(--accent); }
+        #n { font-size: 2.2rem; font-weight: 800; color: var(--accent); border-color: rgba(56, 189, 248, 0.4); }
+        select { width: 100%; padding: 12px; margin-bottom: 20px; border-radius: 10px; border: 1px solid var(--border); background: #334155; color: white; cursor: pointer; font-weight: 600; }
+        .sub { font-size: 13px; color: #64748b; margin-bottom: 25px; text-align: center; font-style: italic; }
+        .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+        button { padding: 12px; background: #334155; color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; transition: 0.2s; position: relative; overflow: hidden; }
+        button:active { transform: scale(0.96); }
+        button:hover { background: #475569; }
+        .btn-main { grid-column: span 2; background: var(--accent); color: #0f172a; }
+        canvas { background: white; border-radius: 16px; width: 300px; height: 340px; cursor: crosshair; }
+        /* Toast Notification */
+        #toast { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(20px); background: #10b981; color: white; padding: 10px 20px; border-radius: 30px; font-size: 12px; font-weight: 700; opacity: 0; transition: 0.3s; pointer-events: none; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.4); }
+        #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
     </style>
 </head>
-<body data-theme="dark">
-
-    <button class="theme-toggle" onclick="toggleTheme()">🌓 Theme</button>
+<body>
 
     <div class="card">
         <div class="controls">
-            <div class="label">Enter Fingering</div>
-            <input type="text" id="i" value="x 3 2 0 1 0" autofocus>
-
-            <input type="text" id="n" value="C">
-            <div id="tag" onclick="resetAuto()">Auto-detecting</div>
-
-            <div class="label">Matches</div>
-            <select id="alt" onchange="selectAlt(this.value)"></select>
-
-            <div class="label">Tuning</div>
-            <select id="tuningSelect" onchange="draw()">
-                <option value="E2,A2,D3,G3,B3,E4">Standard (EADGBE)</option>
-                <option value="D2,A2,D3,G3,B3,E4">Drop D</option>
-                <option value="D2,A2,D3,G3,A3,D4">DADGAD</option>
-            </select>
-
+            <div class="label">Fingering</div>
+            <input type="text" id="i" value="x 3 2 3 3 x" spellcheck="false">
+            <div class="label">Chord Name</div>
+            <input type="text" id="n" spellcheck="false">
+            <div class="sub">CF3.4: Feedback Edition</div>
+            <div class="label">Alternative IDs</div>
+            <select id="alt" onchange="applyAlt(this.value)"></select>
+            
             <div class="btn-group">
-                <button class="btn-copy btn-full" id="copyBtn" onclick="copyToClipboard()">Copy PNG (High-Res)</button>
-                <button class="btn-png" onclick="save()">Save PNG</button>
-                <button class="btn-svg" onclick="saveSVG()">Save SVG</button>
+                <button class="btn-main" onclick="copyPNG()">Copy PNG</button>
+                <button onclick="saveSVG()">Save SVG</button>
+                <button onclick="copySVGCode()">Copy Code</button>
             </div>
-            <span class="copy-svg-code" id="svgCodeBtn" onclick="copySVGCode()">Copy SVG Code</span>
         </div>
-
-        <div class="preview">
-            <canvas id="c"></canvas>
-        </div>
+        <canvas id="c"></canvas>
+        <div id="toast">Success!</div>
     </div>
 
-    <script>
-        const nI = document.getElementById('n'), iI = document.getElementById('i'), 
-              alt = document.getElementById('alt'), tag = document.getElementById('tag'), 
-              cvs = document.getElementById('c'), ctx = cvs.getContext('2d'),
-              tS = document.getElementById('tuningSelect');
+<script>
+    const iI = document.getElementById('i'), nI = document.getElementById('n'), 
+          alt = document.getElementById('alt'), cvs = document.getElementById('c'), 
+          toast = document.getElementById('toast'), ctx = cvs.getContext('2d');
+    const ratio = 3; cvs.width = 300 * ratio; cvs.height = 340 * ratio; ctx.scale(ratio, ratio);
 
-        const ratio = 3;
-        cvs.width = 260 * ratio; cvs.height = 300 * ratio;
-        ctx.scale(ratio, ratio);
+    const TUNING = [4, 9, 2, 7, 11, 4];
+    const N_FLAT = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"];
+    const N_SHARP = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+    
+    let currentFrets = ["x", "3", "2", "3", "3", "x"];
+    let lockedName = null;
+    const x0 = 80, y0 = 100, w = 140, h = 180, gX = w/5, gY = h/5;
 
-        function toggleTheme() {
-            document.body.setAttribute('data-theme', document.body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
-        }
+    function showToast(msg) {
+        toast.innerText = msg;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2000);
+    }
 
-        function formatChordName(name) {
-            // Remove 'M' if it's at the end of a root (e.g., CM -> C)
-            // Replace 'M7' with 'maj7'
-            return name.replace(/M$/, '').replace('M7', 'maj7');
-        }
+    function getNoteName(val, rootVal) { return [1, 2, 4, 6, 7, 9, 11].includes(rootVal) ? N_SHARP[val] : N_FLAT[val]; }
 
-        function draw() {
-            const frets = iI.value.match(/x|\d+/g) || [];
-            if (frets.length !== 6) return;
+    const FORMULAS = [
+        { name: "7(b13)", ivs: [0, 4, 7, 10, 8] }, { name: "7(#5)", ivs: [0, 4, 8, 10] },
+        { name: "13", ivs: [0, 4, 7, 10, 2, 9] }, { name: "9(#11)", ivs: [0, 4, 10, 2, 6] },
+        { name: "6/9", ivs: [0, 4, 7, 9, 2] }, { name: "maj13", ivs: [0, 4, 7, 11, 2, 9] },
+        { name: "7b9", ivs: [0, 4, 10, 1] }, { name: "7#9", ivs: [0, 4, 10, 3] },
+        { name: "maj9", ivs: [0, 4, 7, 11, 2] }, { name: "m7(b13)", ivs: [0, 3, 7, 10, 8] },
+        { name: "ø7", ivs: [0, 3, 6, 10] }, { name: "°7", ivs: [0, 3, 6, 9] },
+        { name: "m(maj7)", ivs: [0, 3, 7, 11] }, { name: "9", ivs: [0, 4, 10, 2] }, 
+        { name: "m9", ivs: [0, 3, 7, 10, 2] }, { name: "7(b5)", ivs: [0, 4, 10, 6] },
+        { name: "maj7", ivs: [0, 4, 7, 11] }, { name: "7", ivs: [0, 4, 7, 10] }, 
+        { name: "m7", ivs: [0, 3, 7, 10] }, { name: "6", ivs: [0, 4, 7, 9] }, 
+        { name: "m6", ivs: [0, 3, 7, 9] }, { name: "sus4", ivs: [0, 5, 7] }, 
+        { name: "sus2", ivs: [0, 2, 7] }, { name: "", ivs: [0, 4, 7] }, { name: "m", ivs: [0, 3, 7] }
+    ];
 
-            if (window.Tonal && window.Tonal.Chord) {
-                const tuning = tS.value.split(',');
-                let notes = [], bass = "";
-                frets.forEach((f, idx) => {
-                    if (f.toLowerCase() !== 'x') {
-                        let nt = Tonal.Note.transpose(tuning[idx], Tonal.Interval.fromSemitones(parseInt(f)));
-                        let pc = Tonal.Note.get(nt).pc;
-                        notes.push(pc);
-                        if (!bass) bass = pc;
-                    }
-                });
-
-                const detected = Tonal.Chord.detect(notes);
-                const cleanNames = detected.map(m => formatChordName(m));
-
-                if (!nI.dataset.manual) {
-                    nI.value = cleanNames.length > 0 ? cleanNames[0] : "Custom";
-                    alt.innerHTML = "";
-                    cleanNames.forEach(m => {
-                        let opt = document.createElement('option');
-                        opt.value = opt.innerText = m;
-                        alt.appendChild(opt);
-                    });
+    function solve() {
+        let notes = [], bass = -1;
+        currentFrets.forEach((f, i) => {
+            if (f !== 'x') {
+                let v = (TUNING[i] + parseInt(f)) % 12;
+                if (!notes.includes(v)) notes.push(v);
+                if (bass === -1) bass = v;
+            }
+        });
+        if (notes.length === 0) return [];
+        let matches = [];
+        for (let r = 0; r < 12; r++) {
+            let ivs = notes.map(n => (n - r + 12) % 12);
+            for (let f of FORMULAS) {
+                const noWrong = ivs.every(v => f.ivs.includes(v) || (v === 7 && (f.name.includes("b13") || f.name.includes("#5"))));
+                if (!noWrong) continue;
+                const shell = (ivs.includes(10) || ivs.includes(11) || ivs.includes(9)) && [1,2,3,6,8].some(v => ivs.includes(v));
+                const essential = f.ivs.filter(v => v!==7 && !( (notes.length>=5 || shell) && (v===3||v===4) ) && !(f.name.includes("13") && v===2));
+                if (essential.every(v => ivs.includes(v))) {
+                    let label = getNoteName(r, r) + f.name;
+                    if (!ivs.includes(3) && !ivs.includes(4) && !f.name.includes("sus") && f.name !== "") label += "(no3)";
+                    let score = f.ivs.length * 20 + (r === bass ? 50 : 0) - (label.length * 2);
+                    if (f.name === "7(b13)" && ivs.includes(7)) score += 10;
+                    matches.push({ label, score });
                 }
             }
+        }
+        return matches.sort((a, b) => b.score - a.score);
+    }
 
-            const num = frets.map(f => f.toLowerCase() === 'x' ? -1 : parseInt(f));
-            const maxFret = Math.max(...num);
-            const start = (maxFret > 5) ? Math.min(...num.filter(f => f > 0)) : 1;
-
-            ctx.fillStyle = 'white'; ctx.fillRect(0, 0, 260, 300);
-            ctx.fillStyle = 'black'; ctx.font = 'bold 22px Arial'; ctx.textAlign = 'center';
-            ctx.fillText(nI.value, 130, 35);
-
-            let x0 = 60, y0 = 75, w = 140, h = 180, gX = w/5, gY = h/5;
-            ctx.strokeStyle = '#444'; ctx.lineWidth = 1;
-            for(let i=0; i<6; i++) { ctx.beginPath(); ctx.moveTo(x0+i*gX, y0); ctx.lineTo(x0+i*gX, y0+h); ctx.stroke(); }
-            for(let j=0; j<=5; j++) { ctx.beginPath(); ctx.moveTo(x0, y0+j*gY); ctx.lineTo(x0+w, y0+j*gY); ctx.stroke(); }
-
-            if(start === 1) { ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x0+w, y0); ctx.stroke(); ctx.lineWidth = 1; }
-            else { ctx.fillStyle = '#666'; ctx.font = 'bold 14px Arial'; ctx.textAlign = 'right'; ctx.fillText(start + 'fr', x0 - 10, y0 + 15); }
-
-            frets.forEach((f, k) => {
-                let x = x0 + k*gX;
-                if(f.toLowerCase() === 'x') { ctx.fillStyle = 'black'; ctx.font = 'bold 18px Arial'; ctx.fillText('×', x, y0 - 12); }
-                else if(f === '0') { ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y0 - 15, 6, 0, 7); ctx.stroke(); }
-                else {
-                    let rel = parseInt(f) - start + 1;
-                    ctx.fillStyle = '#2c3e50'; ctx.beginPath(); ctx.arc(x, y0 + (rel*gY) - (gY/2), 11, 0, 7); ctx.fill();
-                }
+    function draw() {
+        const results = solve();
+        alt.innerHTML = "";
+        let engineSuggested = "?";
+        if (results.length > 0) {
+            let seen = new Set();
+            let unique = results.filter(r => seen.has(r.label) ? false : seen.add(r.label));
+            unique.forEach(r => { 
+                let o = document.createElement('option'); o.value = r.label; o.innerText = r.label;
+                if (lockedName === r.label) o.selected = true;
+                alt.appendChild(o); 
             });
+            const isValid = unique.some(u => u.label === lockedName);
+            if (!isValid && lockedName && !nI.dataset.manual) lockedName = null;
+            engineSuggested = unique[0].label;
         }
+        const finalName = lockedName || engineSuggested;
+        if (!nI.dataset.manual) nI.value = finalName;
+        ctx.fillStyle = 'white'; ctx.fillRect(0, 0, 300, 340);
+        ctx.fillStyle = '#0f172a'; ctx.font = '800 32px sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText(nI.value, 150, 55);
+        const num = currentFrets.map(f => f === 'x' ? -1 : parseInt(f));
+        const start = (Math.max(...num) > 5) ? Math.min(...num.filter(f => f > 0)) : 1;
+        ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 1;
+        for(let i=0; i<6; i++) { ctx.beginPath(); ctx.moveTo(x0+i*gX, y0); ctx.lineTo(x0+i*gX, y0+h); ctx.stroke(); }
+        for(let j=0; j<=5; j++) { ctx.beginPath(); ctx.moveTo(x0, y0+j*gY); ctx.lineTo(x0+w, y0+j*gY); ctx.stroke(); }
+        if(start === 1) { ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x0+w, y0); ctx.stroke(); }
+        else { ctx.fillStyle = '#64748b'; ctx.font = 'bold 18px sans-serif'; ctx.textAlign = 'right'; ctx.fillText(start + 'fr', x0 - 15, y0 + 20); }
+        currentFrets.forEach((f, k) => {
+            let x = x0 + k*gX;
+            if(f === 'x') { ctx.fillStyle = '#cbd5e1'; ctx.font = '22px sans-serif'; ctx.fillText('×', x, y0 - 15); }
+            else if(f === '0') { ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(x, y0 - 18, 7, 0, 7); ctx.stroke(); }
+            else {
+                let rel = parseInt(f) - start + 1;
+                ctx.fillStyle = '#000000'; ctx.beginPath(); ctx.arc(x, y0 + (rel*gY) - (gY/2), 14, 0, 7); ctx.fill();
+            }
+        });
+    }
 
-        function selectAlt(v) { nI.value = v; nI.dataset.manual = "true"; tag.innerText = "Manual Override"; draw(); }
-        function resetAuto() { delete nI.dataset.manual; tag.innerText = "Auto-detecting"; draw(); }
-        iI.oninput = () => { resetAuto(); draw(); };
-        nI.oninput = () => { nI.dataset.manual = "true"; tag.innerText = "Manual Override"; draw(); };
+    nI.oninput = () => { nI.dataset.manual = "true"; draw(); };
+    function applyAlt(v) { delete nI.dataset.manual; lockedName = v; draw(); }
+    iI.oninput = () => { delete nI.dataset.manual; lockedName = null; let val = iI.value.trim().split(/\s+/); if (val.length === 6) { currentFrets = val; draw(); } };
 
-        function save() { const a = document.createElement('a'); a.download = nI.value + '.png'; a.href = cvs.toDataURL(); a.click(); }
-        async function copyToClipboard() {
-            cvs.toBlob(async (b) => {
-                const i = new ClipboardItem({ "image/png": b });
-                await navigator.clipboard.write([i]);
-                document.getElementById('copyBtn').innerText = "Copied!";
-                setTimeout(() => document.getElementById('copyBtn').innerText = "Copy PNG (High-Res)", 1500);
-            });
+    cvs.onclick = (e) => {
+        delete nI.dataset.manual; lockedName = null;
+        const rect = cvs.getBoundingClientRect();
+        const mX = (e.clientX - rect.left) * (300 / rect.width);
+        const mY = (e.clientY - rect.top) * (340 / rect.height);
+        let sIdx = Math.round((mX - x0) / gX);
+        if (sIdx < 0 || sIdx > 5) return;
+        if (mY < y0) currentFrets[sIdx] = (currentFrets[sIdx] === '0') ? 'x' : '0';
+        else {
+            let fIdx = Math.ceil((mY - y0) / gY);
+            if (fIdx >= 1 && fIdx <= 5) {
+                const num = currentFrets.map(f => f === 'x' ? -1 : parseInt(f));
+                const start = (Math.max(...num) > 5) ? Math.min(...num.filter(f => f > 0)) : 1;
+                let actual = (start > 1) ? (fIdx + start - 1) : fIdx;
+                currentFrets[sIdx] = (currentFrets[sIdx] == actual) ? 'x' : actual.toString();
+            }
         }
+        iI.value = currentFrets.join(" "); draw();
+    };
 
-        function getSVGString() {
-            const name = nI.value; const frets = iI.value.match(/x|\d+/g) || [];
-            const num = frets.map(f => f.toLowerCase() === 'x' ? -1 : parseInt(f));
-            const start = (Math.max(...num) > 5) ? Math.min(...num.filter(f => f > 0)) : 1;
-            let x0 = 60, y0 = 75, w = 140, h = 180, gX = w/5, gY = h/5;
-            let svg = `<svg width="260" height="300" viewBox="0 0 260 300" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="white"/>`;
-            svg += `<text x="130" y="35" text-anchor="middle" font-family="Arial" font-weight="bold" font-size="22" fill="black">${name}</text>`;
-            for(let i=0; i<6; i++) svg += `<line x1="${x0+i*gX}" y1="${y0}" x2="${x0+i*gX}" y2="${y0+h}" stroke="#444" stroke-width="1"/>`;
-            for(let j=0; j<=5; j++) svg += `<line x1="${x0}" y1="${y0+j*gY}" x2="${x0+w}" y2="${y0+j*gY}" stroke="#444" stroke-width="1"/>`;
-            if(start === 1) svg += `<line x1="${x0}" y1="${y0}" x2="${x0+w}" y2="${y0}" stroke="black" stroke-width="6"/>`;
-            else svg += `<text x="${x0-10}" y="${y0+15}" text-anchor="end" font-family="Arial" font-weight="bold" font-size="14" fill="#666">${start}fr</text>`;
-            frets.forEach((f, k) => {
-                let x = x0 + k*gX;
-                if(f.toLowerCase() === 'x') svg += `<text x="${x}" y="${y0-10}" text-anchor="middle" font-family="Arial" font-weight="bold" font-size="18" fill="black">×</text>`;
-                else if(f === '0') svg += `<circle cx="${x}" cy="${y0-15}" r="6" stroke="black" stroke-width="2" fill="none"/>`;
-                else { let rel = parseInt(f)-start+1; svg += `<circle cx="${x}" cy="${y0+(rel*gY)-(gY/2)}" r="11" fill="#2c3e50"/>`; }
-            });
-            return svg + `</svg>`;
-        }
-
-        async function copySVGCode() {
-            await navigator.clipboard.writeText(getSVGString());
-            document.getElementById('svgCodeBtn').innerText = "SVG Code Copied!";
-            setTimeout(() => document.getElementById('svgCodeBtn').innerText = "Copy SVG Code", 1500);
-        }
-
-        function saveSVG() {
-            const b = new Blob([getSVGString()], {type: 'image/svg+xml'});
-            const l = document.createElement('a'); l.href = URL.createObjectURL(b); l.download = nI.value + '.svg'; l.click();
-        }
-
-        window.onload = () => { setTimeout(draw, 300); };
-    </script>
+    function copyPNG() { cvs.toBlob(b => navigator.clipboard.write([new ClipboardItem({"image/png": b})])); showToast("PNG Copied!"); }
+    function getSVG() {
+        const num = currentFrets.map(f => f === 'x' ? -1 : parseInt(f));
+        const start = (Math.max(...num) > 5) ? Math.min(...num.filter(f => f > 0)) : 1;
+        let s = `<svg width="300" height="340" viewBox="0 0 300 340" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="white"/><text x="150" y="55" text-anchor="middle" font-family="sans-serif" font-weight="800" font-size="32">${nI.value}</text>`;
+        for(let i=0; i<6; i++) s += `<line x1="${x0+i*gX}" y1="${y0}" x2="${x0+i*gX}" y2="${y0+h}" stroke="#e2e8f0" />`;
+        for(let j=0; j<=5; j++) s += `<line x1="${x0}" y1="${y0+j*gY}" x2="${x0+w}" y2="${y0+j*gY}" stroke="#e2e8f0" />`;
+        if(start===1) s += `<line x1="${x0}" y1="${y0}" x2="${x0+w}" y2="${y0}" stroke="#0f172a" stroke-width="6" />`;
+        else s += `<text x="${x0-15}" y="${y0+20}" text-anchor="end" font-family="sans-serif" font-weight="bold" font-size="18">${start}fr</text>`;
+        currentFrets.forEach((f, k) => {
+            let x = x0 + k*gX;
+            if(f==='x') s += `<text x="${x}" y="${y0-15}" text-anchor="middle" fill="#cbd5e1" font-size="22">×</text>`;
+            else if(f==='0') s += `<circle cx="${x}" cy="${y0-18}" r="7" fill="none" stroke="#0f172a" stroke-width="2.5" />`;
+            else { let r = parseInt(f)-start+1; s += `<circle cx="${x}" cy="${y0+(r*gY)-(gY/2)}" r="14" fill="black" />`; }
+        });
+        return s + `</svg>`;
+    }
+    function saveSVG() { const b = new Blob([getSVG()], {type: 'image/svg+xml'}); const l = document.createElement('a'); l.href = URL.createObjectURL(b); l.download = nI.value + '.svg'; l.click(); showToast("SVG Saved!"); }
+    function copySVGCode() { navigator.clipboard.writeText(getSVG()); showToast("Code Copied!"); }
+    window.onload = draw;
+</script>
 </body>
 </html>
